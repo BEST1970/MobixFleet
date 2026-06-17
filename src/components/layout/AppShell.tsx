@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { Upload, BarChart3, Truck } from 'lucide-react';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Upload', icon: Upload },
@@ -8,6 +9,7 @@ const NAV_ITEMS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { reset } = useAnalysis();
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -24,7 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Brand */}
-            <NavLink to="/" className="flex items-center gap-3 group">
+            <NavLink to="/" className="flex items-center gap-3 group" onClick={() => reset()}>
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cfe-green to-cfe-teal flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
                 <Truck className="w-5 h-5 text-white" />
               </div>
@@ -45,6 +47,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={to}
                   to={to}
                   end={to === '/'}
+                  onClick={() => {
+                    if (to === '/') reset();
+                  }}
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150
                     ${isActive

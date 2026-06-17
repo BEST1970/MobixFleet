@@ -16,6 +16,7 @@ interface AnalysisState {
   loadFile: (data: ArrayBuffer, fileName: string) => void;
   setRadiusMeters: (r: number) => void;
   setClusterLabel: (clusterId: number, label: string) => void;
+  reset: () => void;
 }
 
 const AnalysisContext = createContext<AnalysisState | null>(null);
@@ -111,6 +112,15 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const reset = useCallback(() => {
+    setRawSegments(null);
+    setClusteredSegments(null);
+    setClusters([]);
+    setResult(null);
+    setFileName(null);
+    setError(null);
+  }, []);
+
   // Re-run analysis when labels change (but not clustering)
   useEffect(() => {
     if (clusteredSegments && clusters.length > 0) {
@@ -131,6 +141,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
       loadFile,
       setRadiusMeters,
       setClusterLabel,
+      reset,
     }}>
       {children}
     </AnalysisContext.Provider>
