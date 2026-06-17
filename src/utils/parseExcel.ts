@@ -35,23 +35,7 @@ function toDate(val: unknown): Date | null {
   return null;
 }
 
-/**
- * Convert duration to seconds. Could be a Date (timedelta from openpyxl),
- * a number (fractional days), or a string like "HH:MM:SS".
- */
-function toDurationSeconds(val: unknown): number {
-  if (val == null) return 0;
-  if (typeof val === 'number') {
-    // SheetJS returns duration as fractional days
-    return Math.round(val * 86400);
-  }
-  if (typeof val === 'string') {
-    const parts = val.split(':').map(Number);
-    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    if (parts.length === 2) return parts[0] * 3600 + parts[1] * 60;
-  }
-  return 0;
-}
+
 
 export function parseExcelFile(data: ArrayBuffer): RawSegment[] {
   const workbook = XLSX.read(data, { type: 'array', cellDates: true });
