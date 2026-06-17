@@ -1,0 +1,91 @@
+@import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+/* ── CFE Brand Palette ──────────────────────────────────────────────────── */
+:root {
+  --background: #f8fafc;
+  --foreground: #1e293b;
+
+  /* Greens */
+  --cfe-green-light: #94C04C;
+  --cfe-green: #6EB550;
+  --cfe-green-mid: #12A03C;
+  --cfe-green-dark: #00833D;
+
+  /* Blues */
+  --cfe-blue-light: #58B3E6;
+  --cfe-blue: #2455A2;
+  --cfe-blue-dark: #1A3F81;
+
+  /* Purples / Indigos */
+  --cfe-purple: #6F65AA;
+  --cfe-indigo: #313C90;
+  --cfe-indigo-dark: #283375;
+
+  /* Teals */
+  --cfe-teal: #00A4A8;
+  --cfe-teal-dark: #008C8A;
+}
+
+@theme inline {
+  --color-cfe-green: var(--cfe-green);
+  --color-cfe-green-light: var(--cfe-green-light);
+  --color-cfe-green-dark: var(--cfe-green-dark);
+  --color-cfe-blue: var(--cfe-blue);
+  --color-cfe-blue-light: var(--cfe-blue-light);
+  --color-cfe-blue-dark: var(--cfe-blue-dark);
+  --color-cfe-purple: var(--cfe-purple);
+  --color-cfe-indigo: var(--cfe-indigo);
+  --color-cfe-indigo-dark: var(--cfe-indigo-dark);
+  --color-cfe-teal: var(--cfe-teal);
+  --color-cfe-teal-dark: var(--cfe-teal-dark);
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── Animations ─────────────────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-gentle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in-up { animation: fadeInUp 0.25s ease-out both; }
+.animate-fade-in    { animation: fadeIn 0.2s ease-out both; }
+.animate-slide-down { animation: slideDown 0.2s ease-out both; }
+.animate-pulse-gentle { animation: pulse-gentle 2s ease-in-out infinite; }
+
+/* ── No scrollbar utility ───────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Leaflet fixes ──────────────────────────────────────────────────────── */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.75rem;
+  z-index: 1;
+}
