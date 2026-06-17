@@ -42,6 +42,8 @@ export interface Transport {
   fromLabel: string;
   toClusterId: number;
   toLabel: string;
+  type: 'Dieplader' | 'Rijden';
+  distanceMeters: number;
 }
 
 // Stats per crane

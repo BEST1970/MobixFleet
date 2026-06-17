@@ -1,4 +1,5 @@
 import type { Segment, Cluster, CraneDay, Transport, CraneStats, AnalysisResult, ClusterLabels } from '../types';
+import { haversineMeters } from './clustering';
 
 /**
  * Format a date as YYYY-MM-DD
@@ -114,7 +115,8 @@ function buildCraneDays(
  * Detect transports: a crane's dominant location changes from one day to the next.
  */
 function detectTransports(
-  craneDays: CraneDay[]
+  craneDays: CraneDay[],
+  clusters: Cluster[]
 ): Transport[] {
   const transports: Transport[] = [];
   const byCrane = new Map<string, CraneDay[]>();
@@ -134,6 +136,23 @@ function detectTransports(
       if (prev.dominantClusterId === -1 || curr.dominantClusterId === -1) continue;
 
       if (prev.dominantClusterId !== curr.dominantClusterId) {
+        const prevCluster = clusters.find(c => c.id === prev.dominantClusterId);
+        const currCluster = clusters.find(c => c.id === curr.dominantClusterId);
+        
+        let distanceMeters = 0;
+        let type: 'Dieplader' | 'Rijden' = 'Dieplader';
+
+        if (prevCluster && currCluster) {
+          distanceMeters = haversineMeters(
+            prevCluster.centroidLat, prevCluster.centroidLon,
+            currCluster.centroidLat, currCluster.centroidLon
+          );
+          // If distance is less than 5km, it's driving on its own tracks
+          if (distanceMeters < 5000) {
+            type = 'Rijden';
+          }
+        }
+
         transports.push({
           crane: curr.crane,
           date: curr.date,
@@ -141,6 +160,8 @@ function detectTransports(
           fromLabel: prev.dominantClusterLabel,
           toClusterId: curr.dominantClusterId,
           toLabel: curr.dominantClusterLabel,
+          type,
+          distanceMeters,
         });
       }
     }
@@ -168,7 +189,9 @@ function computeCraneStats(
 
   const transportsByCrane = new Map<string, number>();
   for (const t of transports) {
-    transportsByCrane.set(t.crane, (transportsByCrane.get(t.crane) || 0) + 1);
+    if (t.type === 'Dieplader') {
+      transportsByCrane.set(t.crane, (transportsByCrane.get(t.crane) || 0) + 1);
+    }
   }
 
   const stats: CraneStats[] = [];
@@ -213,7 +236,7 @@ export function runAnalysis(
   const craneDays = buildCraneDays(merged, clusterLabels, clusters);
 
   // 4. Detect transports
-  const transports = detectTransports(craneDays);
+  const transports = detectTransports(craneDays, clusters);
 
   // 5. Compute stats
   const craneStats = computeCraneStats(craneDays, transports, periodStart, periodEnd);
@@ -228,6 +251,6 @@ export function runAnalysis(
     periodEnd,
     totalCranes: craneStats.length,
     totalLocations: clusters.length,
-    totalTransports: transports.length,
+    totalTransports: transports.filter(t => t.type === 'Dieplader').length,
   };
 }

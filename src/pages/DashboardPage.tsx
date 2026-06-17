@@ -8,6 +8,7 @@ import { TimelineView } from '../components/dashboard/TimelineView';
 import { TransportTable } from '../components/dashboard/TransportTable';
 import { ClusterSettings } from '../components/dashboard/ClusterSettings';
 import { ExportButton } from '../components/dashboard/ExportButton';
+import { SimultaneousUsageChart } from '../components/dashboard/SimultaneousUsageChart';
 import { BarChart3, Clock, ArrowLeftRight, Settings2 } from 'lucide-react';
 
 const TABS = [
@@ -66,9 +67,12 @@ export function DashboardPage() {
       {/* Tab content */}
       <div className="animate-fade-in">
         {activeTab === 'overzicht' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MapView result={result} />
-            <OccupancyChart result={result} />
+          <div className="space-y-6">
+            <SimultaneousUsageChart result={result} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <MapView result={result} />
+              <OccupancyChart result={result} />
+            </div>
           </div>
         )}
         {activeTab === 'tijdlijn' && <TimelineView result={result} />}

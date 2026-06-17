@@ -77,11 +77,12 @@ export function TransportTable({ result }: Props) {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                <th className="px-6 py-3 cursor-pointer hover:text-slate-600" onClick={() => handleSort('crane')}>
-                  <span className="flex items-center gap-1">Kraan <SortIcon k="crane" /></span>
-                </th>
                 <th className="px-6 py-3 cursor-pointer hover:text-slate-600" onClick={() => handleSort('date')}>
                   <span className="flex items-center gap-1">Datum <SortIcon k="date" /></span>
+                </th>
+                <th className="px-6 py-3">Type</th>
+                <th className="px-6 py-3 cursor-pointer hover:text-slate-600" onClick={() => handleSort('crane')}>
+                  <span className="flex items-center gap-1">Kraan <SortIcon k="crane" /></span>
                 </th>
                 <th className="px-6 py-3 cursor-pointer hover:text-slate-600" onClick={() => handleSort('from')}>
                   <span className="flex items-center gap-1">Van <SortIcon k="from" /></span>
@@ -90,18 +91,31 @@ export function TransportTable({ result }: Props) {
                 <th className="px-6 py-3 cursor-pointer hover:text-slate-600" onClick={() => handleSort('to')}>
                   <span className="flex items-center gap-1">Naar <SortIcon k="to" /></span>
                 </th>
+                <th className="px-6 py-3">Afstand</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {sorted.map((t, i) => (
                 <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-3 font-medium text-slate-700">{t.crane}</td>
                   <td className="px-6 py-3 text-slate-500">
                     {new Date(t.date).toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </td>
+                  <td className="px-6 py-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                      t.type === 'Dieplader' 
+                        ? 'bg-blue-50 text-blue-700' 
+                        : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {t.type}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 font-medium text-slate-700">{t.crane}</td>
                   <td className="px-6 py-3 text-slate-600">{t.fromLabel}</td>
                   <td className="px-6 py-3 text-slate-300"><ArrowRight className="w-4 h-4" /></td>
                   <td className="px-6 py-3 text-slate-600">{t.toLabel}</td>
+                  <td className="px-6 py-3 text-slate-500">
+                    {t.distanceMeters > 0 ? `${(t.distanceMeters / 1000).toFixed(1)} km` : '-'}
+                  </td>
                 </tr>
               ))}
             </tbody>
