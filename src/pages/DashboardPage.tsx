@@ -8,7 +8,7 @@ import { TimelineView } from '../components/dashboard/TimelineView';
 import { TransportTable } from '../components/dashboard/TransportTable';
 import { ClusterSettings } from '../components/dashboard/ClusterSettings';
 import { ExportButton } from '../components/dashboard/ExportButton';
-import { BarChart3, Map, Clock, ArrowLeftRight, Settings2 } from 'lucide-react';
+import { BarChart3, Clock, ArrowLeftRight, Settings2 } from 'lucide-react';
 
 const TABS = [
   { id: 'overzicht', label: 'Overzicht', icon: BarChart3 },

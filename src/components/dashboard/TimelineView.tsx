@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { AnalysisResult } from '../../types';
 
 interface Props {
@@ -63,6 +64,13 @@ export function TimelineView({ result }: Props) {
     return map;
   }, [craneDays]);
 
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    date: Date;
+    cd: typeof craneDays[0] | undefined;
+  } | null>(null);
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
       <div className="flex items-center justify-between mb-6">
@@ -90,7 +98,7 @@ export function TimelineView({ result }: Props) {
       </div>
 
       {/* Timeline track grouped by month */}
-      <div className="overflow-x-auto no-scrollbar pb-4">
+      <div className="overflow-x-auto no-scrollbar pb-4 relative">
         <div className="flex gap-8 min-w-max">
           {[...months.entries()].map(([monthLabel, days]) => (
             <div key={monthLabel} className="flex flex-col">
@@ -105,29 +113,22 @@ export function TimelineView({ result }: Props) {
                   const dayNum = dObj.getDate();
                   
                   return (
-                    <div key={date} className="group relative flex flex-col items-center">
+                    <div key={date} className="flex flex-col items-center">
                       <div
                         className={`w-5 h-10 rounded-sm transition-all duration-200 hover:scale-110 hover:shadow-md cursor-default
                           ${!cd ? (isWeekend ? 'bg-slate-100' : 'bg-slate-50') : ''}`}
                         style={cd ? { backgroundColor: locationColors.get(cd.dominantClusterLabel) || '#94a3b8' } : undefined}
+                        onMouseEnter={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setTooltip({
+                            x: rect.left + rect.width / 2,
+                            y: rect.top - 8,
+                            date: dObj,
+                            cd
+                          });
+                        }}
+                        onMouseLeave={() => setTooltip(null)}
                       />
-                      
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full mb-2 hidden group-hover:block z-50 w-max max-w-[200px] bg-slate-800 text-white text-xs rounded-lg py-2 px-3 shadow-xl pointer-events-none transform -translate-x-1/2 left-1/2">
-                        <div className="font-semibold text-slate-200 mb-1 border-b border-slate-600 pb-1">
-                          {dObj.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </div>
-                        {cd ? (
-                          <>
-                            <div className="font-medium text-white break-words">{cd.dominantClusterLabel}</div>
-                            <div className="text-slate-400 mt-0.5">{cd.activeHours.toFixed(1)} uur actief</div>
-                          </>
-                        ) : (
-                          <div className="text-slate-400">Geen activiteit</div>
-                        )}
-                        {/* Tooltip Arrow */}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
-                      </div>
 
                       {/* Day Number (Show 1st of month, and multiples of 5) */}
                       {(dayNum === 1 || dayNum % 5 === 0) ? (
@@ -143,6 +144,29 @@ export function TimelineView({ result }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Portal Tooltip */}
+      {tooltip && createPortal(
+        <div 
+          className="fixed z-[9999] w-max max-w-[200px] bg-slate-800 text-white text-xs rounded-lg py-2 px-3 shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          <div className="font-semibold text-slate-200 mb-1 border-b border-slate-600 pb-1">
+            {tooltip.date.toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' })}
+          </div>
+          {tooltip.cd ? (
+            <>
+              <div className="font-medium text-white break-words">{tooltip.cd.dominantClusterLabel}</div>
+              <div className="text-slate-400 mt-0.5">{tooltip.cd.activeHours.toFixed(1)} uur actief</div>
+            </>
+          ) : (
+            <div className="text-slate-400">Geen activiteit</div>
+          )}
+          {/* Tooltip Arrow */}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
