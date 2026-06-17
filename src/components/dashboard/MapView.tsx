@@ -22,7 +22,13 @@ export function MapView({ result }: Props) {
         document.head.appendChild(link);
       }
 
-      // Clean up previous map
+      // Clean up previous map if it exists
+      const container = mapRef.current;
+      if (container && (container as any)._leaflet_id) {
+        (container as any)._leaflet_id = null;
+        container.innerHTML = '';
+      }
+
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
