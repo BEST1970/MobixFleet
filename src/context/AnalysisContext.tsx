@@ -23,6 +23,7 @@ const AnalysisContext = createContext<AnalysisState | null>(null);
 
 const LABELS_KEY = 'mobixvh:clusterLabels';
 const RADIUS_KEY = 'mobixvh:clusterRadius';
+const RAW_DATA_KEY = 'mobixvh:rawData';
 
 function loadLabels(): ClusterLabels {
   try {
@@ -37,6 +38,22 @@ function saveLabels(labels: ClusterLabels) {
   localStorage.setItem(LABELS_KEY, JSON.stringify(labels));
 }
 
+function loadRawSegments(): RawSegment[] | null {
+  try {
+    const stored = localStorage.getItem(RAW_DATA_KEY);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as RawSegment[];
+    // Revive dates
+    for (const seg of parsed) {
+      seg.van = new Date(seg.van);
+      seg.tot = new Date(seg.tot);
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [rawSegments, setRawSegments] = useState<RawSegment[] | null>(null);
   const [clusteredSegments, setClusteredSegments] = useState<Segment[] | null>(null);
@@ -48,8 +65,9 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     return stored ? Number(stored) : 300;
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem('mobixvh:fileName'));
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Run clustering whenever rawSegments or radius changes
   const runClustering = useCallback((segments: RawSegment[], radius: number) => {
@@ -64,6 +82,23 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     const analysisResult = runAnalysis(segs, cls, labels);
     setResult(analysisResult);
   }, []);
+
+  // Initialize from storage on mount
+  useEffect(() => {
+    if (isInitialized) return;
+    setIsInitialized(true);
+    const initialSegments = loadRawSegments();
+    if (initialSegments) {
+      setIsLoading(true);
+      // Small timeout so UI can render loading state if needed
+      setTimeout(() => {
+        setRawSegments(initialSegments);
+        const { clustered, newClusters } = runClustering(initialSegments, radiusMeters);
+        runFullAnalysis(clustered, newClusters, clusterLabels);
+        setIsLoading(false);
+      }, 50);
+    }
+  }, [isInitialized, radiusMeters, clusterLabels, runClustering, runFullAnalysis]);
 
   // Load file
   const loadFile = useCallback((data: ArrayBuffer, name: string) => {
@@ -81,6 +116,8 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         setRawSegments(segments);
+        localStorage.setItem(RAW_DATA_KEY, JSON.stringify(segments));
+        localStorage.setItem('mobixvh:fileName', name);
 
         const { clustered, newClusters } = runClustering(segments, radiusMeters);
         runFullAnalysis(clustered, newClusters, clusterLabels);
@@ -113,6 +150,8 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const reset = useCallback(() => {
+    localStorage.removeItem(RAW_DATA_KEY);
+    localStorage.removeItem('mobixvh:fileName');
     setRawSegments(null);
     setClusteredSegments(null);
     setClusters([]);

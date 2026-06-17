@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAnalysis } from '../context/AnalysisContext';
 import { FileDropZone } from '../components/FileDropZone';
@@ -7,13 +7,15 @@ import { Truck, BarChart3, MapPin, ArrowLeftRight } from 'lucide-react';
 export function UploadPage() {
   const { loadFile, isLoading, result, error } = useAnalysis();
   const navigate = useNavigate();
+  const previousIsLoading = useRef(isLoading);
 
-  // Auto-navigate to dashboard when analysis completes
+  // Auto-navigate to dashboard ONLY when a new file finishes loading
   useEffect(() => {
-    if (result && !isLoading) {
+    if (previousIsLoading.current && !isLoading && result) {
       navigate('/dashboard');
     }
-  }, [result, isLoading, navigate]);
+    previousIsLoading.current = isLoading;
+  }, [isLoading, result, navigate]);
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center">
@@ -30,6 +32,22 @@ export function UploadPage() {
           transporten en bezettingsgraad van je kraanvloot.
         </p>
       </div>
+
+      {/* Existing data banner */}
+      {result && !isLoading && (
+        <div className="mb-8 w-full max-w-2xl bg-cfe-green/10 border border-cfe-green/20 rounded-2xl p-5 flex items-center justify-between shadow-sm animate-fade-in-up">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800">Er is al data ingeladen</h3>
+            <p className="text-xs text-slate-500 mt-1">Je kunt een nieuw bestand uploaden of verdergaan naar het dashboard.</p>
+          </div>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="px-5 py-2.5 bg-cfe-green text-white rounded-xl text-sm font-medium hover:bg-cfe-green-light transition-colors shadow-sm"
+          >
+            Naar Dashboard
+          </button>
+        </div>
+      )}
 
       {/* Drop zone */}
       <div className="w-full animate-fade-in-up" style={{ animationDelay: '100ms' }}>
