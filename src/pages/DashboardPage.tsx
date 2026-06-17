@@ -12,8 +12,6 @@ import { BarChart3, Map, Clock, ArrowLeftRight, Settings2 } from 'lucide-react';
 
 const TABS = [
   { id: 'overzicht', label: 'Overzicht', icon: BarChart3 },
-  { id: 'kaart', label: 'Kaart', icon: Map },
-  { id: 'bezetting', label: 'Bezetting', icon: BarChart3 },
   { id: 'tijdlijn', label: 'Tijdlijn', icon: Clock },
   { id: 'transporten', label: 'Transporten', icon: ArrowLeftRight },
   { id: 'instellingen', label: 'Instellingen', icon: Settings2 },
@@ -73,8 +71,6 @@ export function DashboardPage() {
             <OccupancyChart result={result} />
           </div>
         )}
-        {activeTab === 'kaart' && <MapView result={result} />}
-        {activeTab === 'bezetting' && <OccupancyChart result={result} />}
         {activeTab === 'tijdlijn' && <TimelineView result={result} />}
         {activeTab === 'transporten' && <TransportTable result={result} />}
         {activeTab === 'instellingen' && (
