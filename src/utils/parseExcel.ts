@@ -84,7 +84,7 @@ export function parseExcelFile(data: ArrayBuffer): RawSegment[] {
     // Skip invalid coordinates
     if (stopLon === 0 && stopLat === 0) continue;
     
-    const duurSeconds = toDurationSeconds(row['Duur']);
+    const duurSeconds = Math.max(0, Math.round((tot.getTime() - van.getTime()) / 1000));
     
     segments.push({
       voertuig: voertuig.trim(),

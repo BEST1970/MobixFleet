@@ -81,6 +81,18 @@ export function MapView({ result }: Props) {
         const bounds = L.latLngBounds(markers);
         map.fitBounds(bounds, { padding: [30, 30] });
       }
+
+      // Force Leaflet to recalculate container size to fix empty map bug on tab switch
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 400);
     });
 
     return () => {
