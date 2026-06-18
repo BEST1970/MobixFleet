@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { get, set, del } from 'idb-keyval';
 import type { RawSegment, Segment, Cluster, AnalysisResult, ClusterLabels } from '../types';
 import { parseExcelFile } from '../utils/parseExcel';
 import { clusterLocations } from '../utils/clustering';
@@ -38,22 +39,6 @@ function saveLabels(labels: ClusterLabels) {
   localStorage.setItem(LABELS_KEY, JSON.stringify(labels));
 }
 
-function loadRawSegments(): RawSegment[] | null {
-  try {
-    const stored = localStorage.getItem(RAW_DATA_KEY);
-    if (!stored) return null;
-    const parsed = JSON.parse(stored) as RawSegment[];
-    // Revive dates
-    for (const seg of parsed) {
-      seg.van = new Date(seg.van);
-      seg.tot = new Date(seg.tot);
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
 export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [rawSegments, setRawSegments] = useState<RawSegment[] | null>(null);
   const [clusteredSegments, setClusteredSegments] = useState<Segment[] | null>(null);
@@ -87,17 +72,46 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isInitialized) return;
     setIsInitialized(true);
-    const initialSegments = loadRawSegments();
-    if (initialSegments) {
+    
+    async function init() {
       setIsLoading(true);
-      // Small timeout so UI can render loading state if needed
-      setTimeout(() => {
-        setRawSegments(initialSegments);
-        const { clustered, newClusters } = runClustering(initialSegments, radiusMeters);
-        runFullAnalysis(clustered, newClusters, clusterLabels);
+      try {
+        let initialSegments = await get<RawSegment[]>(RAW_DATA_KEY);
+        
+        // Migrate from localStorage if IDB is empty
+        if (!initialSegments) {
+          const old = localStorage.getItem(RAW_DATA_KEY);
+          if (old) {
+            const parsed = JSON.parse(old) as RawSegment[];
+            for (const seg of parsed) {
+              seg.van = new Date(seg.van);
+              seg.tot = new Date(seg.tot);
+            }
+            initialSegments = parsed;
+            await set(RAW_DATA_KEY, parsed);
+            localStorage.removeItem(RAW_DATA_KEY);
+          }
+        } else {
+          // Revive dates from IDB
+          for (const seg of initialSegments) {
+            seg.van = new Date(seg.van);
+            seg.tot = new Date(seg.tot);
+          }
+        }
+
+        if (initialSegments) {
+          setRawSegments(initialSegments);
+          const { clustered, newClusters } = runClustering(initialSegments, radiusMeters);
+          runFullAnalysis(clustered, newClusters, clusterLabels);
+        }
+      } catch (e) {
+        console.error('Failed to load initial data:', e);
+      } finally {
         setIsLoading(false);
-      }, 50);
+      }
     }
+    
+    init();
   }, [isInitialized, radiusMeters, clusterLabels, runClustering, runFullAnalysis]);
 
   // Load file
@@ -107,7 +121,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     setFileName(name);
 
     // Use setTimeout to allow UI to update
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
         const segments = parseExcelFile(data);
         if (segments.length === 0) {
@@ -116,7 +130,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         setRawSegments(segments);
-        localStorage.setItem(RAW_DATA_KEY, JSON.stringify(segments));
+        await set(RAW_DATA_KEY, segments);
         localStorage.setItem('mobixvh:fileName', name);
 
         const { clustered, newClusters } = runClustering(segments, radiusMeters);
@@ -149,8 +163,12 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const reset = useCallback(() => {
-    localStorage.removeItem(RAW_DATA_KEY);
+  const reset = useCallback(async () => {
+    try {
+      await del(RAW_DATA_KEY);
+    } catch (e) {
+      console.error('Failed to delete from IDB:', e);
+    }
     localStorage.removeItem('mobixvh:fileName');
     setRawSegments(null);
     setClusteredSegments(null);

@@ -13,6 +13,7 @@
     "@fontsource/inter": "^5.2.8",
     "@tailwindcss/vite": "^4.3.0",
     "file-saver": "^2.0.5",
+    "idb-keyval": "^6.2.5",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
