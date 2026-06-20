@@ -115,13 +115,15 @@ export function DashboardPage() {
       <div className="animate-fade-in">
         {activeTab === 'overzicht' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="w-full">
               <SimultaneousUsageChart result={filteredResult} bcData={filteredBcData} />
-              <PeakDistributionChart result={filteredResult} bcData={filteredBcData} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <MapView result={filteredResult} />
+              <PeakDistributionChart result={filteredResult} bcData={filteredBcData} />
               <OccupancyChart result={filteredResult} />
+            </div>
+            <div className="w-full">
+              <MapView result={filteredResult} />
             </div>
           </div>
         )}
