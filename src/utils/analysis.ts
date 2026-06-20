@@ -1,4 +1,4 @@
-import type { Segment, Cluster, CraneDay, Transport, CraneStats, AnalysisResult, ClusterLabels } from '../types';
+import type { Segment, Cluster, CraneDay, Transport, CraneStats, AnalysisResult, ClusterLabels, CraneType } from '../types';
 import { haversineMeters } from './clustering';
 
 /**
@@ -64,12 +64,14 @@ function buildCraneDays(
 ): CraneDay[] {
   // Group by crane + date
   const groupMap = new Map<string, { clusterId: number; seconds: number }[]>();
+  const craneTypeMap = new Map<string, CraneType>();
 
   for (const seg of segments) {
     const day = dateKey(seg.van);
     const key = `${seg.shortName}|${day}`;
     if (!groupMap.has(key)) groupMap.set(key, []);
     groupMap.get(key)!.push({ clusterId: seg.clusterId, seconds: seg.duurSeconds });
+    if (!craneTypeMap.has(seg.shortName)) craneTypeMap.set(seg.shortName, seg.craneType);
   }
 
   const craneDays: CraneDay[] = [];
@@ -95,6 +97,7 @@ function buildCraneDays(
 
     craneDays.push({
       crane,
+      craneType: craneTypeMap.get(crane) || 'Overig',
       date,
       dominantClusterId: dominantCluster,
       dominantClusterLabel: dominantCluster === -1 ? 'Onbekend' : (clusterLabelMap.get(dominantCluster) || `Locatie ${dominantCluster + 1}`),
@@ -155,6 +158,7 @@ function detectTransports(
 
         transports.push({
           crane: curr.crane,
+          craneType: curr.craneType,
           date: curr.date,
           fromClusterId: prev.dominantClusterId,
           fromLabel: prev.dominantClusterLabel,
@@ -202,6 +206,7 @@ function computeCraneStats(
     );
     stats.push({
       crane,
+      craneType: days[0]?.craneType || 'Overig',
       activeDays: uniqueDates.size,
       totalDays,
       occupancyPct: Math.round((uniqueDates.size / totalDays) * 100),

@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { get, set, del } from 'idb-keyval';
-import type { RawSegment, Segment, Cluster, AnalysisResult, ClusterLabels } from '../types';
+import type { RawSegment, Segment, Cluster, AnalysisResult, ClusterLabels, ExternalCraneDay } from '../types';
 import { parseExcelFile } from '../utils/parseExcel';
+import { parseBCExcelFile } from '../utils/parseBCExcel';
 import { clusterLocations } from '../utils/clustering';
 import { runAnalysis } from '../utils/analysis';
 
@@ -13,8 +14,11 @@ interface AnalysisState {
   radiusMeters: number;
   isLoading: boolean;
   fileName: string | null;
+  bcFileName: string | null;
+  bcData: ExternalCraneDay[] | null;
   error: string | null;
   loadFile: (data: ArrayBuffer, fileName: string) => void;
+  loadBCFile: (data: ArrayBuffer, fileName: string) => void;
   setRadiusMeters: (r: number) => void;
   setClusterLabel: (clusterId: number, label: string) => void;
   reset: () => void;
@@ -25,6 +29,7 @@ const AnalysisContext = createContext<AnalysisState | null>(null);
 const LABELS_KEY = 'mobixvh:clusterLabels';
 const RADIUS_KEY = 'mobixvh:clusterRadius';
 const RAW_DATA_KEY = 'mobixvh:rawData';
+const BC_DATA_KEY = 'mobixvh:bcData';
 
 function loadLabels(): ClusterLabels {
   try {
@@ -51,6 +56,8 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem('mobixvh:fileName'));
+  const [bcFileName, setBcFileName] = useState<string | null>(() => localStorage.getItem('mobixvh:bcFileName'));
+  const [bcData, setBcData] = useState<ExternalCraneDay[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -103,6 +110,12 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
           setRawSegments(initialSegments);
           const { clustered, newClusters } = runClustering(initialSegments, radiusMeters);
           runFullAnalysis(clustered, newClusters, clusterLabels);
+        }
+
+        // Also load BC data
+        const storedBC = await get<ExternalCraneDay[]>(BC_DATA_KEY);
+        if (storedBC) {
+          setBcData(storedBC);
         }
       } catch (e) {
         console.error('Failed to load initial data:', e);
@@ -163,18 +176,48 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Load BC file
+  const loadBCFile = useCallback((data: ArrayBuffer, name: string) => {
+    setIsLoading(true);
+    setError(null);
+    setBcFileName(name);
+
+    setTimeout(async () => {
+      try {
+        const bcDays = parseBCExcelFile(data);
+        if (bcDays.length === 0) {
+          setError('Geen geldige datarijen gevonden in het BC-bestand.');
+          setIsLoading(false);
+          return;
+        }
+        setBcData(bcDays);
+        await set(BC_DATA_KEY, bcDays);
+        localStorage.setItem('mobixvh:bcFileName', name);
+        setIsLoading(false);
+      } catch (e) {
+        console.error('BC Parse error:', e);
+        setError(`Fout bij het verwerken: ${e instanceof Error ? e.message : 'Onbekende fout'}`);
+        setIsLoading(false);
+      }
+    }, 50);
+  }, []);
+
   const reset = useCallback(async () => {
     try {
       await del(RAW_DATA_KEY);
+      await del(BC_DATA_KEY);
     } catch (e) {
       console.error('Failed to delete from IDB:', e);
     }
     localStorage.removeItem('mobixvh:fileName');
+    localStorage.removeItem('mobixvh:bcFileName');
     setRawSegments(null);
     setClusteredSegments(null);
     setClusters([]);
     setResult(null);
     setFileName(null);
+    setBcFileName(null);
+    setBcData(null);
     setError(null);
   }, []);
 
@@ -194,8 +237,11 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
       radiusMeters,
       isLoading,
       fileName,
+      bcFileName,
+      bcData,
       error,
       loadFile,
+      loadBCFile,
       setRadiusMeters,
       setClusterLabel,
       reset,

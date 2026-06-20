@@ -4,9 +4,11 @@ import { Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
 interface Props {
   onFileLoaded: (data: ArrayBuffer, fileName: string) => void;
   isLoading?: boolean;
+  title?: string;
+  description?: string;
 }
 
-export function FileDropZone({ onFileLoaded, isLoading }: Props) {
+export function FileDropZone({ onFileLoaded, isLoading, title = "Sleep je Excel-bestand hierheen", description = "Of klik om een bestand te selecteren (.xlsx)" }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,10 +89,10 @@ export function FileDropZone({ onFileLoaded, isLoading }: Props) {
               </div>
               <div>
                 <p className="text-lg font-semibold text-slate-700">
-                  Sleep je GeoDynamics Excel-bestand hierheen
+                  {title}
                 </p>
                 <p className="text-sm text-slate-400 mt-1">
-                  Of klik om een bestand te selecteren (.xlsx)
+                  {description}
                 </p>
               </div>
             </>

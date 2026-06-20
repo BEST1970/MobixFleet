@@ -1,5 +1,16 @@
 import * as XLSX from 'xlsx';
-import type { RawSegment } from '../types';
+import type { RawSegment, CraneType } from '../types';
+
+/**
+ * Detect crane capacity type from vehicle name.
+ * E.g. "SIGN SPWKR13 20T ATLAS 1404 BJ08" → '1404'
+ *      "TRCK SPWKR22 23T LORRE ATLAS 1604 BJ14" → '1604'
+ */
+function extractCraneType(fullName: string): CraneType {
+  if (/1604/i.test(fullName)) return '1604';
+  if (/1404/i.test(fullName)) return '1404';
+  return 'Overig';
+}
 
 /**
  * Extract short crane name from full vehicle description.
@@ -73,6 +84,7 @@ export function parseExcelFile(data: ArrayBuffer): RawSegment[] {
     segments.push({
       voertuig: voertuig.trim(),
       shortName: extractShortName(voertuig),
+      craneType: extractCraneType(voertuig),
       status: status as 'Rijden' | 'Stationair',
       van,
       tot,

@@ -1,7 +1,11 @@
+// Crane capacity type
+export type CraneType = '1404' | '1604' | 'Overig';
+
 // Raw row parsed from Excel
 export interface RawSegment {
   voertuig: string;
   shortName: string;
+  craneType: CraneType;
   status: 'Rijden' | 'Stationair';
   van: Date;
   tot: Date;
@@ -28,6 +32,7 @@ export interface Cluster {
 // Per crane per day
 export interface CraneDay {
   crane: string;
+  craneType: CraneType;
   date: string; // YYYY-MM-DD
   dominantClusterId: number;
   dominantClusterLabel: string;
@@ -37,6 +42,7 @@ export interface CraneDay {
 // Transport = location change between consecutive days
 export interface Transport {
   crane: string;
+  craneType: CraneType;
   date: string;
   fromClusterId: number;
   fromLabel: string;
@@ -49,6 +55,7 @@ export interface Transport {
 // Stats per crane
 export interface CraneStats {
   crane: string;
+  craneType: CraneType;
   activeDays: number;
   totalDays: number;
   occupancyPct: number;
@@ -73,4 +80,13 @@ export interface AnalysisResult {
 // Cluster label overrides stored in localStorage
 export interface ClusterLabels {
   [clusterId: number]: string;
+}
+
+// Business Central: external crane day (onderaannemers + eigen kranen from BC)
+export interface ExternalCraneDay {
+  crane: string;
+  date: string; // YYYY-MM-DD
+  hoursWorked: number;
+  source: 'Eigen' | 'Onderaannemer';
+  craneType: CraneType;
 }
