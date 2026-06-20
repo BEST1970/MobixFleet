@@ -12,7 +12,9 @@ interface AnalysisState {
   clusters: Cluster[];
   clusterLabels: ClusterLabels;
   radiusMeters: number;
-  isLoading: boolean;
+  isInitializing: boolean;
+  isGeoLoading: boolean;
+  isBcLoading: boolean;
   fileName: string | null;
   bcFileName: string | null;
   bcData: ExternalCraneDay[] | null;
@@ -54,7 +56,9 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem(RADIUS_KEY);
     return stored ? Number(stored) : 300;
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isGeoLoading, setIsGeoLoading] = useState(false);
+  const [isBcLoading, setIsBcLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(() => localStorage.getItem('mobixvh:fileName'));
   const [bcFileName, setBcFileName] = useState<string | null>(() => localStorage.getItem('mobixvh:bcFileName'));
   const [bcData, setBcData] = useState<ExternalCraneDay[] | null>(null);
@@ -81,7 +85,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     setIsInitialized(true);
     
     async function init() {
-      setIsLoading(true);
+      setIsInitializing(true);
       try {
         let initialSegments = await get<RawSegment[]>(RAW_DATA_KEY);
         
@@ -120,7 +124,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error('Failed to load initial data:', e);
       } finally {
-        setIsLoading(false);
+        setIsInitializing(false);
       }
     }
     
@@ -129,7 +133,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
 
   // Load file
   const loadFile = useCallback((data: ArrayBuffer, name: string) => {
-    setIsLoading(true);
+    setIsGeoLoading(true);
     setError(null);
     setFileName(name);
 
@@ -139,7 +143,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
         const segments = parseExcelFile(data);
         if (segments.length === 0) {
           setError('Geen geldige datarijen gevonden in het bestand.');
-          setIsLoading(false);
+          setIsGeoLoading(false);
           return;
         }
         setRawSegments(segments);
@@ -148,11 +152,11 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
 
         const { clustered, newClusters } = runClustering(segments, radiusMeters);
         runFullAnalysis(clustered, newClusters, clusterLabels);
-        setIsLoading(false);
+        setIsGeoLoading(false);
       } catch (e) {
         console.error('Parse error:', e);
         setError(`Fout bij het verwerken: ${e instanceof Error ? e.message : 'Onbekende fout'}`);
-        setIsLoading(false);
+        setIsGeoLoading(false);
       }
     }, 50);
   }, [radiusMeters, clusterLabels, runClustering, runFullAnalysis]);
@@ -178,7 +182,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
 
   // Load BC file
   const loadBCFile = useCallback((data: ArrayBuffer, name: string) => {
-    setIsLoading(true);
+    setIsBcLoading(true);
     setError(null);
     setBcFileName(name);
 
@@ -187,17 +191,17 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
         const bcDays = parseBCExcelFile(data);
         if (bcDays.length === 0) {
           setError('Geen geldige datarijen gevonden in het BC-bestand.');
-          setIsLoading(false);
+          setIsBcLoading(false);
           return;
         }
         setBcData(bcDays);
         await set(BC_DATA_KEY, bcDays);
         localStorage.setItem('mobixvh:bcFileName', name);
-        setIsLoading(false);
+        setIsBcLoading(false);
       } catch (e) {
         console.error('BC Parse error:', e);
         setError(`Fout bij het verwerken: ${e instanceof Error ? e.message : 'Onbekende fout'}`);
-        setIsLoading(false);
+        setIsBcLoading(false);
       }
     }, 50);
   }, []);
@@ -235,7 +239,9 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
       clusters,
       clusterLabels,
       radiusMeters,
-      isLoading,
+      isInitializing,
+      isGeoLoading,
+      isBcLoading,
       fileName,
       bcFileName,
       bcData,

@@ -2,20 +2,22 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAnalysis } from '../context/AnalysisContext';
 import { FileDropZone } from '../components/FileDropZone';
-import { Truck, BarChart3, MapPin, ArrowLeftRight } from 'lucide-react';
+import { Truck, BarChart3, MapPin, ArrowLeftRight, CheckCircle2 } from 'lucide-react';
 
 export function UploadPage() {
-  const { isLoading, result } = useAnalysis();
+  const { isInitializing, isGeoLoading, isBcLoading, result, bcData, fileName, bcFileName } = useAnalysis();
   const navigate = useNavigate();
-  const previousIsLoading = useRef(isLoading);
+  
+  const prevGeoLoading = useRef(isGeoLoading);
+  const prevBcLoading = useRef(isBcLoading);
 
   // Auto-navigate to dashboard ONLY when a new file finishes loading
   useEffect(() => {
-    if (previousIsLoading.current && !isLoading && result) {
-      navigate('/dashboard');
-    }
-    previousIsLoading.current = isLoading;
-  }, [isLoading, result, navigate]);
+    if (prevGeoLoading.current && !isGeoLoading && result) navigate('/dashboard');
+    if (prevBcLoading.current && !isBcLoading && bcData) navigate('/dashboard');
+    prevGeoLoading.current = isGeoLoading;
+    prevBcLoading.current = isBcLoading;
+  }, [isGeoLoading, isBcLoading, result, bcData, navigate]);
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center">
@@ -34,7 +36,7 @@ export function UploadPage() {
       </div>
 
       {/* Existing data banner */}
-      {(result || useAnalysis().bcData) && !isLoading && (
+      {(result || bcData) && !isGeoLoading && !isBcLoading && !isInitializing && (
         <div className="mb-8 w-full max-w-2xl bg-cfe-green/10 border border-cfe-green/20 rounded-2xl p-5 flex items-center justify-between shadow-sm animate-fade-in-up">
           <div>
             <h3 className="text-sm font-semibold text-slate-800">Er is al data ingeladen</h3>
@@ -51,28 +53,40 @@ export function UploadPage() {
 
       {/* Drop zones */}
       <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 relative">
           <h2 className="text-lg font-semibold text-slate-800 px-2">GeoDynamics (GPS)</h2>
           <FileDropZone 
             onFileLoaded={useAnalysis().loadFile} 
-            isLoading={isLoading} 
+            isLoading={isGeoLoading || isInitializing} 
             title="Upload GeoDynamics export"
           />
+          {fileName && !isGeoLoading && (
+            <div className="flex items-center gap-1.5 px-2 mt-1 text-sm text-cfe-green">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Bestand geladen: <strong>{fileName}</strong></span>
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 relative">
           <h2 className="text-lg font-semibold text-slate-800 px-2">Business Central (Uren)</h2>
           <FileDropZone 
             onFileLoaded={useAnalysis().loadBCFile} 
-            isLoading={isLoading} 
+            isLoading={isBcLoading || isInitializing} 
             title="Upload Kraanuren BC export"
             description="Voor onderaannemers en wekelijkse uren (.xlsx)"
           />
+          {bcFileName && !isBcLoading && (
+            <div className="flex items-center gap-1.5 px-2 mt-1 text-sm text-cfe-green">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Bestand geladen: <strong>{bcFileName}</strong></span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Error message */}
       {useAnalysis().error && (
-        <div className="mt-4 max-w-2xl mx-auto flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl px-4 py-3">
+        <div className="mt-6 max-w-2xl mx-auto flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl px-4 py-3">
           {useAnalysis().error}
         </div>
       )}
