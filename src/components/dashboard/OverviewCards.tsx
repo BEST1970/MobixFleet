@@ -23,7 +23,7 @@ export function OverviewCards({ result }: Props) {
     },
     {
       label: 'Periode',
-      value: `${result.periodStart.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' })} — ${result.periodEnd.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+      value: `${result.periodStart.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' })} — ${result.periodEnd.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' })}`,
       icon: Calendar,
       color: 'bg-cfe-purple/10 text-cfe-purple',
       iconBg: 'bg-cfe-purple',

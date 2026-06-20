@@ -118,12 +118,12 @@ export function DashboardPage() {
             <div className="w-full">
               <SimultaneousUsageChart result={filteredResult} bcData={filteredBcData} />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <PeakDistributionChart result={filteredResult} bcData={filteredBcData} />
-              <OccupancyChart result={filteredResult} />
-            </div>
             <div className="w-full">
+              <PeakDistributionChart result={filteredResult} bcData={filteredBcData} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <MapView result={filteredResult} />
+              <OccupancyChart result={filteredResult} />
             </div>
           </div>
         )}
