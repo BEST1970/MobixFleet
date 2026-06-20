@@ -91,6 +91,18 @@ export function MapView({ result }: Props) {
       resizeObserver.observe(mapRef.current);
     }
 
+    // Force Leaflet to recalculate container size to fix empty map bug on mount/tab switch
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 100);
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 400);
+
     return () => {
       resizeObserver.disconnect();
       if (mapInstanceRef.current) {
