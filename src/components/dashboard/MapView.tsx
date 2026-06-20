@@ -1,6 +1,4 @@
 import { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import type { AnalysisResult } from '../../types';
 
 interface Props {
@@ -9,102 +7,100 @@ interface Props {
 
 export function MapView({ result }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
+  const mapInstanceRef = useRef<any>(null);
 
   useEffect(() => {
     if (!mapRef.current || result.clusters.length === 0) return;
 
-    // Clean up previous map if it exists
-    const container = mapRef.current;
-    if (container && (container as any)._leaflet_id) {
-      (container as any)._leaflet_id = null;
-      container.innerHTML = '';
-    }
-
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
-
-    const map = L.map(mapRef.current, {
-      scrollWheelZoom: true,
-    });
-    mapInstanceRef.current = map;
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 18,
-    }).addTo(map);
-
-    // Compute crane-days per cluster
-    const clusterCraneDays = new Map<number, number>();
-    for (const cd of result.craneDays) {
-      if (cd.dominantClusterId !== -1) {
-        clusterCraneDays.set(cd.dominantClusterId, (clusterCraneDays.get(cd.dominantClusterId) || 0) + 1);
+    // Dynamic import to avoid SSR issues and guarantee Leaflet is available
+    import('leaflet').then((L) => {
+      // Import leaflet CSS dynamically
+      if (!document.querySelector('link[href*="leaflet.css"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
       }
-    }
-    const maxDays = Math.max(1, ...clusterCraneDays.values());
 
-    const markers: L.LatLng[] = [];
+      // Clean up previous map if it exists
+      const container = mapRef.current;
+      if (container && (container as any)._leaflet_id) {
+        (container as any)._leaflet_id = null;
+        container.innerHTML = '';
+      }
 
-    for (const cluster of result.clusters) {
-      const days = clusterCraneDays.get(cluster.id) || 0;
-      const relSize = Math.max(0.3, days / maxDays);
-      const radius = 8 + relSize * 22;
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
 
-      // Color interpolation based on days
-      const hue = days / maxDays > 0.5 ? 130 : days / maxDays > 0.25 ? 45 : 0;
-      const color = `hsl(${hue}, 70%, 45%)`;
+      const map = L.map(mapRef.current!, {
+        scrollWheelZoom: true,
+      });
+      mapInstanceRef.current = map;
 
-      const marker = L.circleMarker([cluster.centroidLat, cluster.centroidLon], {
-        radius,
-        fillColor: color,
-        color: '#fff',
-        weight: 2,
-        fillOpacity: 0.8,
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 18,
       }).addTo(map);
 
-      marker.bindPopup(`
-        <div style="font-family: Inter, system-ui; font-size: 13px;">
-          <strong>${cluster.label}</strong><br/>
-          <span style="color: #64748b;">${days} kraandagen</span><br/>
-          <span style="color: #94a3b8; font-size: 11px;">${cluster.pointCount} datapunten</span>
-        </div>
-      `);
-
-      markers.push(L.latLng(cluster.centroidLat, cluster.centroidLon));
-    }
-
-    if (markers.length > 0) {
-      const bounds = L.latLngBounds(markers);
-      map.fitBounds(bounds, { padding: [30, 30] });
-    }
-
-    // Use ResizeObserver to reliably handle container resizing (e.g. from tab animations)
-    const resizeObserver = new ResizeObserver(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+      // Compute crane-days per cluster
+      const clusterCraneDays = new Map<number, number>();
+      for (const cd of result.craneDays) {
+        if (cd.dominantClusterId !== -1) {
+          clusterCraneDays.set(cd.dominantClusterId, (clusterCraneDays.get(cd.dominantClusterId) || 0) + 1);
+        }
       }
+      const maxDays = Math.max(1, ...clusterCraneDays.values());
+
+      const markers: any[] = [];
+
+      for (const cluster of result.clusters) {
+        const days = clusterCraneDays.get(cluster.id) || 0;
+        const relSize = Math.max(0.3, days / maxDays);
+        const radius = 8 + relSize * 22;
+
+        const hue = days / maxDays > 0.5 ? 130 : days / maxDays > 0.25 ? 45 : 0;
+        const color = `hsl(${hue}, 70%, 45%)`;
+
+        const marker = L.circleMarker([cluster.centroidLat, cluster.centroidLon], {
+          radius,
+          fillColor: color,
+          color: '#fff',
+          weight: 2,
+          fillOpacity: 0.8,
+        }).addTo(map);
+
+        marker.bindPopup(`
+          <div style="font-family: Inter, system-ui; font-size: 13px;">
+            <strong>${cluster.label}</strong><br/>
+            <span style="color: #64748b;">${days} kraandagen</span><br/>
+            <span style="color: #94a3b8; font-size: 11px;">${cluster.pointCount} datapunten</span>
+          </div>
+        `);
+
+        markers.push(L.latLng(cluster.centroidLat, cluster.centroidLon));
+      }
+
+      if (markers.length > 0) {
+        const bounds = L.latLngBounds(markers);
+        map.fitBounds(bounds, { padding: [30, 30] });
+      }
+
+      // Force Leaflet to recalculate container size to fix empty map bug on tab switch
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 400);
     });
 
-    if (mapRef.current) {
-      resizeObserver.observe(mapRef.current);
-    }
-
-    // Force Leaflet to recalculate container size to fix empty map bug on mount/tab switch
-    setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
-    }, 100);
-    setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
-    }, 400);
-
     return () => {
-      resizeObserver.disconnect();
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
